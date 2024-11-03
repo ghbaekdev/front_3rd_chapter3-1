@@ -1,7 +1,7 @@
 import { Event } from '../types';
 import { getWeekDates, isDateInRange } from './dateUtils';
 
-function filterEventsByDateRange(events: Event[], start: Date, end: Date): Event[] {
+export function filterEventsByDateRange(events: Event[], start: Date, end: Date): Event[] {
   return events.filter((event) => {
     const eventDate = new Date(event.date);
     return isDateInRange(eventDate, start, end);
@@ -12,21 +12,34 @@ function containsTerm(target: string, term: string) {
   return target.toLowerCase().includes(term.toLowerCase());
 }
 
-function searchEvents(events: Event[], term: string) {
+export function searchEvents(events: Event[], term: string) {
+  if (!term) return events;
+
   return events.filter(
     ({ title, description, location }) =>
       containsTerm(title, term) || containsTerm(description, term) || containsTerm(location, term)
   );
 }
 
-function filterEventsByDateRangeAtWeek(events: Event[], currentDate: Date) {
+export function filterEventsByDateRangeAtWeek(events: Event[], currentDate: Date) {
   const weekDates = getWeekDates(currentDate);
-  return filterEventsByDateRange(events, weekDates[0], weekDates[6]);
+
+  const startOfDay = new Date(weekDates[0]);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(weekDates[6]);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  return filterEventsByDateRange(events, startOfDay, endOfDay);
 }
 
 function filterEventsByDateRangeAtMonth(events: Event[], currentDate: Date) {
   const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  monthStart.setHours(0, 0, 0, 0);
+
   const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  monthEnd.setHours(23, 59, 59, 999);
+
   return filterEventsByDateRange(events, monthStart, monthEnd);
 }
 
