@@ -43,15 +43,15 @@ describe('getWeekDates', () => {
     expect(weekDates[6].getDate()).toBe(13);
   });
 
-  it('주의 시작(일요일)에 대해 올바른 주의 날짜들을 반환한다', () => {
-    const date = new Date('2024-07-07');
+  it('주의 시작(월요일)에 대해 올바른 주의 날짜들을 반환한다', () => {
+    const date = new Date('2024-07-15');
     const weekDates = getWeekDates(date);
-    expect(weekDates[0].getDate()).toBe(7);
-    expect(weekDates[6].getDate()).toBe(13);
+    expect(weekDates[0].getDate()).toBe(14);
+    expect(weekDates[6].getDate()).toBe(20);
   });
 
-  it('주의 끝(토요일)에 대해 올바른 주의 날짜들을 반환한다', () => {
-    const date = new Date('2024-07-13');
+  it('주의 끝(일요일)에 대해 올바른 주의 날짜들을 반환한다', () => {
+    const date = new Date('2024-07-07');
     const weekDates = getWeekDates(date);
     expect(weekDates[0].getDate()).toBe(7);
     expect(weekDates[6].getDate()).toBe(13);
@@ -64,7 +64,21 @@ describe('getWeekDates', () => {
     expect(weekDates[6].getDate()).toBe(4);
   });
 
-  it('월을 넘어가는 주의 날짜를 정확히 처리한다', () => {
+  it('연도를 넘어가는 주의 날짜를 정확히 처리한다 (연초)', () => {
+    const date = new Date('2024-01-01');
+    const weekDates = getWeekDates(date);
+    expect(weekDates[0].getDate()).toBe(31);
+    expect(weekDates[6].getDate()).toBe(6);
+  });
+
+  it('윤년의 2월 29일을 포함한 주를 올바르게 처리한다', () => {
+    const date = new Date('2024-02-29');
+    const weekDates = getWeekDates(date);
+    expect(weekDates[0].getDate()).toBe(25);
+    expect(weekDates[6].getDate()).toBe(2);
+  });
+
+  it('월의 마지막 날짜를 포함한 주를 올바르게 처리한다', () => {
     const date = new Date('2024-07-31');
     const weekDates = getWeekDates(date);
     expect(weekDates[0].getDate()).toBe(28);
@@ -132,6 +146,16 @@ describe('getEventsForDay', () => {
     const events = getEventsForDay(sampleEvents, 2);
     expect(events).toHaveLength(0);
   });
+
+  it('날짜가 0일 경우 빈 배열을 반환한다', () => {
+    const events = getEventsForDay(sampleEvents, 0);
+    expect(events).toHaveLength(0);
+  });
+
+  it('날짜가 32일 이상인 경우 빈 배열을 반환한다', () => {
+    const events = getEventsForDay(sampleEvents, 32);
+    expect(events).toHaveLength(0);
+  });
 });
 
 describe('formatWeek', () => {
@@ -143,6 +167,25 @@ describe('formatWeek', () => {
   it('월의 첫 주에 대해 올바른 주 정보를 반환한다', () => {
     const date = new Date('2024-07-01');
     expect(formatWeek(date)).toBe('2024년 7월 1주');
+  });
+  it('월의 마지막 주에 대해 올바른 주 정보를 반환한다', () => {
+    const date = new Date('2024-07-31');
+    expect(formatWeek(date)).toBe('2024년 8월 1주');
+  });
+
+  it('연도가 바뀌는 주에 대해 올바른 주 정보를 반환한다', () => {
+    const date = new Date('2024-12-31');
+    expect(formatWeek(date)).toBe('2025년 1월 1주');
+  });
+
+  it('윤년 2월의 마지막 주에 대해 올바른 주 정보를 반환한다', () => {
+    const date = new Date('2024-02-29');
+    expect(formatWeek(date)).toBe('2024년 2월 5주');
+  });
+
+  it('평년 2월의 마지막 주에 대해 올바른 주 정보를 반환한다', () => {
+    const date = new Date('2023-02-28');
+    expect(formatWeek(date)).toBe('2023년 3월 1주');
   });
 });
 
@@ -181,6 +224,10 @@ describe('isDateInRange', () => {
     const date = new Date('2024-08-01');
     expect(isDateInRange(date, rangeStart, rangeEnd)).toBe(false);
   });
+  it('시작일이 종료일보다 늦은 경우 모든 날짜에 대해 false를 반환한다', () => {
+    const date = new Date('2024-07-02');
+    expect(isDateInRange(date, rangeEnd, rangeStart)).toBe(false);
+  });
 });
 
 describe('fillZero', () => {
@@ -196,8 +243,28 @@ describe('fillZero', () => {
     expect(fillZero(3, 3)).toBe('003');
   });
 
+  test("100을 2자리로 변환하면 '100'을 반환한다", () => {
+    expect(fillZero(100, 2)).toBe('100');
+  });
+
+  test("0을 2자리로 변환하면 '00'을 반환한다", () => {
+    expect(fillZero(0, 2)).toBe('00');
+  });
+
+  test("1을 5자리로 변환하면 '00001'을 반환한다", () => {
+    expect(fillZero(1, 5)).toBe('00001');
+  });
+
+  test("소수점이 있는 3.14를 5자리로 변환하면 '03.14'를 반환한다", () => {
+    expect(fillZero(3.14, 5)).toBe('03.14');
+  });
+
   test('size 파라미터를 생략하면 기본값 2를 사용한다', () => {
     expect(fillZero(7)).toBe('07');
+  });
+
+  test('value가 지정된 size보다 큰 자릿수를 가지면 원래 값을 그대로 반환한다', () => {
+    expect(fillZero(12345, 4)).toBe('12345');
   });
 });
 

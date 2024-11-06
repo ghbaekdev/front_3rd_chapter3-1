@@ -7,7 +7,7 @@ const sampleEvents: Event[] = [
   {
     id: '1',
     title: '이벤트 1',
-    description: '첫 번째 설명',
+    description: '첫 번째 설명 회의',
     date: '2024-11-01',
     location: '서울',
     startTime: '09:00',
@@ -19,7 +19,7 @@ const sampleEvents: Event[] = [
   {
     id: '2',
     title: '이벤트 2',
-    description: '두 번째 설명',
+    description: '두 번째 설명 점심',
     date: '2024-11-02',
     location: '부산',
     startTime: '11:00',
@@ -91,16 +91,18 @@ it('현재 뷰(주간/월간)에 해당하는 이벤트만 반환해야 한다',
   ).toBe(true);
 });
 
-it('검색어를 변경하면 필터링된 결과가 즉시 업데이트되어야 한다', () => {
-  const { result } = renderHook(() => useSearch(sampleEvents, new Date('2024-11-01'), 'week'));
+it("검색어를 '회의'에서 '점심'으로 변경하면 필터링된 결과가 즉시 업데이트되어야 한다", () => {
+  const { result } = renderHook(() => useSearch(sampleEvents, new Date('2024-11-01'), 'month'));
 
   act(() => {
-    result.current.setSearchTerm('이벤트');
+    result.current.setSearchTerm('회의');
   });
-  expect(result.current.filteredEvents).toHaveLength(2);
+
+  expect(result.current.filteredEvents).toHaveLength(1);
 
   act(() => {
-    result.current.setSearchTerm('행사');
+    result.current.setSearchTerm('점심');
   });
+
   expect(result.current.filteredEvents).toHaveLength(1);
 });

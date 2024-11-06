@@ -54,7 +54,7 @@ describe('getUpcomingEvents', () => {
     const pastEvent = {
       ...baseEvent,
       id: '3',
-      startTime: '13:40', // 현재 시각으로부터 9분 전
+      startTime: '13:40',
     };
     const events = [pastEvent];
     const notifiedEvents: string[] = [];
