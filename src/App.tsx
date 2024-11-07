@@ -17,7 +17,6 @@ import {
   AlertTitle,
   Box,
   Button,
-  Checkbox,
   CloseButton,
   Flex,
   FormControl,
@@ -27,39 +26,27 @@ import {
   IconButton,
   Input,
   Select,
-  Table,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tooltip,
-  Tr,
   useToast,
   VStack,
 } from '@chakra-ui/react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
+import CheckBoxField from './components/CheckBoxField.tsx';
+import DateField from './components/DateField.tsx';
+import InputField from './components/InputField.tsx';
+import MonthView from './components/monthView.tsx';
+import WeekView from './components/weekView.tsx';
 import { useCalendarView } from './hooks/useCalendarView.ts';
 import { useEventForm } from './hooks/useEventForm.ts';
 import { useEventOperations } from './hooks/useEventOperations.ts';
 import { useNotifications } from './hooks/useNotifications.ts';
+import { useOverlapDialog } from './hooks/useOverlapDialog.ts';
 import { useSearch } from './hooks/useSearch.ts';
+import { categories } from './lib/index.ts';
 import { Event, EventForm, RepeatType } from './types';
-import {
-  formatDate,
-  formatMonth,
-  formatWeek,
-  getEventsForDay,
-  getWeekDates,
-  getWeeksAtMonth,
-} from './utils/dateUtils';
 import { findOverlappingEvents } from './utils/eventOverlap';
 import { getTimeErrorMessage } from './utils/timeValidation';
-
-const categories = ['업무', '개인', '가족', '기타'];
-
-const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
 const notificationOptions = [
   { value: 1, label: '1분 전' },
@@ -111,8 +98,9 @@ function App() {
   const { view, setView, currentDate, holidays, navigate } = useCalendarView();
   const { searchTerm, filteredEvents, setSearchTerm } = useSearch(events, currentDate, view);
 
-  const [isOverlapDialogOpen, setIsOverlapDialogOpen] = useState(false);
-  const [overlappingEvents, setOverlappingEvents] = useState<Event[]>([]);
+  const { isOverlapDialogOpen, setIsOverlapDialogOpen, overlappingEvents, handleOverlap } =
+    useOverlapDialog();
+
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   const toast = useToast();
@@ -157,137 +145,11 @@ function App() {
 
     const overlapping = findOverlappingEvents(eventData, events);
     if (overlapping.length > 0) {
-      setOverlappingEvents(overlapping);
-      setIsOverlapDialogOpen(true);
+      handleOverlap(overlapping);
     } else {
       await saveEvent(eventData);
       resetForm();
     }
-  };
-
-  const renderWeekView = () => {
-    const weekDates = getWeekDates(currentDate);
-    return (
-      <VStack data-testid="week-view" align="stretch" w="full" spacing={4}>
-        <Heading size="md">{formatWeek(currentDate)}</Heading>
-        <Table variant="simple" w="full">
-          <Thead>
-            <Tr>
-              {weekDays.map((day) => (
-                <Th key={day} width="14.28%">
-                  {day}
-                </Th>
-              ))}
-            </Tr>
-          </Thead>
-          <Tbody>
-            <Tr>
-              {weekDates.map((date) => (
-                <Td key={date.toISOString()} height="100px" verticalAlign="top" width="14.28%">
-                  <Text fontWeight="bold">{date.getDate()}</Text>
-                  {filteredEvents
-                    .filter((event) => new Date(event.date).toDateString() === date.toDateString())
-                    .map((event) => {
-                      const isNotified = notifiedEvents.includes(event.id);
-                      return (
-                        <Box
-                          key={event.id}
-                          p={1}
-                          my={1}
-                          bg={isNotified ? 'red.100' : 'gray.100'}
-                          borderRadius="md"
-                          fontWeight={isNotified ? 'bold' : 'normal'}
-                          color={isNotified ? 'red.500' : 'inherit'}
-                        >
-                          <HStack spacing={1}>
-                            {isNotified && <BellIcon />}
-                            <Text fontSize="sm" noOfLines={1}>
-                              {event.title}
-                            </Text>
-                          </HStack>
-                        </Box>
-                      );
-                    })}
-                </Td>
-              ))}
-            </Tr>
-          </Tbody>
-        </Table>
-      </VStack>
-    );
-  };
-
-  const renderMonthView = () => {
-    const weeks = getWeeksAtMonth(currentDate);
-
-    return (
-      <VStack data-testid="month-view" align="stretch" w="full" spacing={4}>
-        <Heading size="md">{formatMonth(currentDate)}</Heading>
-        <Table variant="simple" w="full">
-          <Thead>
-            <Tr>
-              {weekDays.map((day) => (
-                <Th key={day} width="14.28%">
-                  {day}
-                </Th>
-              ))}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {weeks.map((week, weekIndex) => (
-              <Tr key={weekIndex}>
-                {week.map((day, dayIndex) => {
-                  const dateString = day ? formatDate(currentDate, day) : '';
-                  const holiday = holidays[dateString];
-
-                  return (
-                    <Td
-                      key={dayIndex}
-                      height="100px"
-                      verticalAlign="top"
-                      width="14.28%"
-                      position="relative"
-                    >
-                      {day && (
-                        <>
-                          <Text fontWeight="bold">{day}</Text>
-                          {holiday && (
-                            <Text color="red.500" fontSize="sm">
-                              {holiday}
-                            </Text>
-                          )}
-                          {getEventsForDay(filteredEvents, day).map((event) => {
-                            const isNotified = notifiedEvents.includes(event.id);
-                            return (
-                              <Box
-                                key={event.id}
-                                p={1}
-                                my={1}
-                                bg={isNotified ? 'red.100' : 'gray.100'}
-                                borderRadius="md"
-                                fontWeight={isNotified ? 'bold' : 'normal'}
-                                color={isNotified ? 'red.500' : 'inherit'}
-                              >
-                                <HStack spacing={1}>
-                                  {isNotified && <BellIcon />}
-                                  <Text fontSize="sm" noOfLines={1}>
-                                    {event.title}
-                                  </Text>
-                                </HStack>
-                              </Box>
-                            );
-                          })}
-                        </>
-                      )}
-                    </Td>
-                  );
-                })}
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </VStack>
-    );
   };
 
   return (
@@ -296,53 +158,50 @@ function App() {
         <VStack w="400px" spacing={5} align="stretch">
           <Heading>{editingEvent ? '일정 수정' : '일정 추가'}</Heading>
 
-          <FormControl>
-            <FormLabel>제목</FormLabel>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </FormControl>
+          <InputField
+            title="제목"
+            type="string"
+            value={title}
+            handleChange={(e) => setTitle(e.target.value)}
+          />
 
-          <FormControl>
-            <FormLabel>날짜</FormLabel>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </FormControl>
+          <InputField
+            title="날짜"
+            type="date"
+            value={date}
+            handleChange={(e) => setDate(e.target.value)}
+          />
 
           <HStack width="100%">
-            <FormControl>
-              <FormLabel>시작 시간</FormLabel>
-              <Tooltip label={startTimeError} isOpen={!!startTimeError} placement="top">
-                <Input
-                  type="time"
-                  value={startTime}
-                  onChange={handleStartTimeChange}
-                  onBlur={() => getTimeErrorMessage(startTime, endTime)}
-                  isInvalid={!!startTimeError}
-                />
-              </Tooltip>
-            </FormControl>
-            <FormControl>
-              <FormLabel>종료 시간</FormLabel>
-              <Tooltip label={endTimeError} isOpen={!!endTimeError} placement="top">
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={handleEndTimeChange}
-                  onBlur={() => getTimeErrorMessage(startTime, endTime)}
-                  isInvalid={!!endTimeError}
-                />
-              </Tooltip>
-            </FormControl>
+            <DateField
+              type="time"
+              value={startTime}
+              handleChange={handleStartTimeChange}
+              handleBlur={() => getTimeErrorMessage(startTime, endTime)}
+              error={startTimeError}
+              label="시작 시간"
+            />
+            <DateField
+              type="time"
+              value={endTime}
+              handleChange={handleEndTimeChange}
+              handleBlur={() => getTimeErrorMessage(startTime, endTime)}
+              error={endTimeError}
+              label="종료 시간"
+            />
           </HStack>
-
-          <FormControl>
-            <FormLabel>설명</FormLabel>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>위치</FormLabel>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} />
-          </FormControl>
-
+          <InputField
+            title="설명"
+            value={description}
+            handleChange={(e) => setDescription(e.target.value)}
+            type="string"
+          />
+          <InputField
+            title="위치"
+            value={location}
+            handleChange={(e) => setLocation(e.target.value)}
+            type="string"
+          />
           <FormControl>
             <FormLabel>카테고리</FormLabel>
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -355,12 +214,11 @@ function App() {
             </Select>
           </FormControl>
 
-          <FormControl>
-            <FormLabel>반복 설정</FormLabel>
-            <Checkbox isChecked={isRepeating} onChange={(e) => setIsRepeating(e.target.checked)}>
-              반복 일정
-            </Checkbox>
-          </FormControl>
+          <CheckBoxField
+            label="반복 설정"
+            isChecked={isRepeating}
+            handleChange={(e) => setIsRepeating(e.target.checked)}
+          />
 
           <FormControl>
             <FormLabel>알림 설정</FormLabel>
@@ -400,14 +258,12 @@ function App() {
                     min={1}
                   />
                 </FormControl>
-                <FormControl>
-                  <FormLabel>반복 종료일</FormLabel>
-                  <Input
-                    type="date"
-                    value={repeatEndDate}
-                    onChange={(e) => setRepeatEndDate(e.target.value)}
-                  />
-                </FormControl>
+                <InputField
+                  title="반복 종료일"
+                  value={repeatEndDate}
+                  type="date"
+                  handleChange={(e) => setRepeatEndDate(e.target.value)}
+                />
               </HStack>
             </VStack>
           )}
@@ -441,19 +297,30 @@ function App() {
             />
           </HStack>
 
-          {view === 'week' && renderWeekView()}
-          {view === 'month' && renderMonthView()}
+          {view === 'week' && (
+            <WeekView
+              currentDate={currentDate}
+              notifiedEvents={notifiedEvents}
+              filteredEvents={filteredEvents}
+            />
+          )}
+          {view === 'month' && (
+            <MonthView
+              currentDate={currentDate}
+              holidays={holidays}
+              filteredEvents={filteredEvents}
+              notifiedEvents={notifiedEvents}
+            />
+          )}
         </VStack>
 
         <VStack data-testid="event-list" w="500px" h="full" overflowY="auto">
-          <FormControl>
-            <FormLabel>일정 검색</FormLabel>
-            <Input
-              placeholder="검색어를 입력하세요"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </FormControl>
+          <InputField
+            title="일정 검색"
+            value={searchTerm}
+            handleChange={(e) => setSearchTerm(e.target.value)}
+            type="string"
+          />
 
           {filteredEvents.length === 0 ? (
             <Text>검색 결과가 없습니다.</Text>
